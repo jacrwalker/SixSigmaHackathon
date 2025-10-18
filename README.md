@@ -21,7 +21,7 @@ The simulation is useful for understanding patient throughput, staff utilization
 
 Each simulated patient has:
 
-A severity rating (1–100)
+A severity rating (1–100, with 1 being in incredible condition, and 100 being critical condition)
 
 A stay duration (inpatient days)
 
