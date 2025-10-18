@@ -82,7 +82,7 @@ class PatientTrackingSimulation:
                 self.influx_times.pop(0)
 
             # Every 12 hours, upgrade 10% of <50 severity patients multiplicatively by 10%
-            if t > 0 and t % PATIENT_SEVERITY_UPGRADE_INTERVAL == 0:
+            if UPGRADE_ENABLED and t > 0 and t % PATIENT_SEVERITY_UPGRADE_INTERVAL == 0:
                 lt50 = [p for p in self.patients if p.severity < 50 and p.discharge_time is None]
                 n_upgrade = max(1, int(PATIENT_SEVERITY_UPGRADE_PERCENT * len(lt50)))
                 upgrade_patients = random.sample(lt50, n_upgrade) if lt50 and n_upgrade > 0 else []
@@ -96,22 +96,32 @@ class PatientTrackingSimulation:
                 if staff.current_patient is not None:
                     patient = next((p for p in self.patients if p.id == staff.current_patient), None)
                     if patient and patient.treatment_minutes_left <= 0:
-                        staff.available = True
-                        staff.current_patient = None
-                        patient.seen = 0
-                        patient.assigned_staff = None
-                        if patient.maintain is not None and patient.treatment_minutes_left == 0:
-                            patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + 0.5)
+                        if DISCHARGE_ON_SESSION_END:
+                            patient.discharge_time = t
+                            patient.discharge_reason = 'session_end'
+                            patient.stop_waiting()
+                            staff.available = True
+                            staff.current_patient = None
+                            patient.seen = 0
+                            patient.assigned_staff = None
                             patient.maintain = None
+                        else:
+                            staff.available = True
+                            staff.current_patient = None
+                            patient.seen = 0
+                            patient.assigned_staff = None
+                            if patient.maintain is not None and patient.treatment_minutes_left == 0:
+                                patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + SESSION_END_BUMP)
+                                patient.maintain = None
 
             # Accumulate waiting time and apply time growth
-            # Per config: TIME_GROWTH = "0.5 * t + severity_i" means +0.5 per minute when waiting
+            # Per config: linear growth: +GROWTH_PER_MIN per minute when waiting
             for patient in active_patients:
                 if patient.seen == 0:
                     patient.waiting_time += 1
                     patient.start_waiting()
-                    # Apply time growth: severity increases by 0.5 per minute when waiting
-                    patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + 0.5)
+                    # Apply linear growth
+                    patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + GROWTH_PER_MIN)
 
             # Sort by severity descending
             active_patients.sort(key=lambda p: p.severity, reverse=True)
@@ -122,8 +132,9 @@ class PatientTrackingSimulation:
                     patient.stop_waiting()
                     if patient.treatment_minutes_left > 0:
                         patient.treatment_minutes_left -= 1
+                        # If maintain=0, apply linear decay
                         if patient.maintain == 0:
-                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - 0.5)
+                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - DECAY_PER_MIN)
                     else:
                         pass
                 else:
@@ -145,12 +156,9 @@ class PatientTrackingSimulation:
                                 patient.time_in_inpatient = days
                         prob = PROVIDER_MAINTAIN_PROB_GE50 if patient.severity >= 50 else PROVIDER_MAINTAIN_PROB_LT50
                         patient.maintain = 1 if random.random() < prob else 0
-                        if staff.type == 'provider':
-                            mean_minutes = 2 * patient.severity
-                        else:
-                            mean_minutes = patient.severity
-                        patient.treatment_minutes_left = int(np.random.normal(loc=mean_minutes, scale=1))
-                        patient.treatment_minutes_left = max(1, patient.treatment_minutes_left)
+                        # Session duration based on CURRENT severity at assignment time
+                        max_treatment = int(max(PATIENT_SEVERITY_MIN, patient.severity) * MAX_TREATMENT_MULTIPLIER)
+                        patient.treatment_minutes_left = random.randint(MIN_TREATMENT_TIME, max(MIN_TREATMENT_TIME, max_treatment))
                         assigned = True
                         patient.stop_waiting()
                         break

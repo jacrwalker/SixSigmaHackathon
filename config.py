@@ -55,15 +55,26 @@ NURSES_MAX_PATIENTS = 4  # Assigned panel size per nurse (bed-slot groups of 4)
 
 # Treatment parameters
 # Time Growth function (while patient is not being seen)
-TIME_GROWTH = "0.5 * t + severity_i"
+TIME_GROWTH = "0.5 * t + severity_i"  # Linear growth: +0.5 per minute when waiting
 # Time Decay function (while patient is being seen)
-TIME_DECAY = "-0.5 * t + severity_i"
+TIME_DECAY = "-0.5 * t + severity_i"  # Linear decay: -0.5 per minute when being treated
+# Explicit per-minute rates used by the simulator (kept separate from doc strings above)
+GROWTH_PER_MIN = 0.5
+DECAY_PER_MIN = 0.5
+# Bump applied at the end of a treatment session (set to 0 if discharging on session end)
+SESSION_END_BUMP = 0.0
+# If True, discharge a patient from the hospital when a treatment session ends (instead of time-window discharge)
+DISCHARGE_ON_SESSION_END = True
+# Max treatment time per session: random between MIN_TREATMENT_TIME and (initial_severity * 2)
+MIN_TREATMENT_TIME = 10  # Minimum treatment session time in minutes
+MAX_TREATMENT_MULTIPLIER = 2  # Max treatment time = initial_severity * this multiplier
 # (Maintain function) Probability of provider maintaining treatment based on severity
 PROVIDER_MAINTAIN_PROB_GE50 = 0.10
 PROVIDER_MAINTAIN_PROB_LT50 = 0.01
 
 # Random Effect
 # Every 12 hours, 10% of patients with severity < 50 have their severity increased by 10% (multiplicative), capped at 100
+UPGRADE_ENABLED = True
 PATIENT_SEVERITY_UPGRADE_INTERVAL = 12 * 60  # every 12 hours
 PATIENT_SEVERITY_UPGRADE_PERCENT = 0.10  # 10% of <50 patients selected
 PATIENT_SEVERITY_UPGRADE_FACTOR = 1.10  # increase current severity by 10%

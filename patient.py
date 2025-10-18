@@ -29,6 +29,8 @@ class Patient:
         self.waiting_periods = []  # List of waiting period lengths (in minutes)
         self._current_wait = 0
         self.first_seen_time = None
+        self.cumulative_waiting_time = 0  # Track total time waiting for squared growth
+        self.total_treatment_time = 0  # Track total time being treated
 
     def start_waiting(self):
         if self._current_wait == 0:

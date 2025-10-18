@@ -65,7 +65,7 @@ class Simulation:
                 self.influx_times.pop(0)
 
             # Every 12 hours, upgrade 10% of <50 severity patients multiplicatively by 10%
-            if t > 0 and t % PATIENT_SEVERITY_UPGRADE_INTERVAL == 0:
+            if UPGRADE_ENABLED and t > 0 and t % PATIENT_SEVERITY_UPGRADE_INTERVAL == 0:
                 lt50 = [p for p in self.patients if p.severity < 50 and p.discharge_time is None]
                 n_upgrade = max(1, int(PATIENT_SEVERITY_UPGRADE_PERCENT * len(lt50)))
                 upgrade_patients = random.sample(lt50, n_upgrade) if lt50 and n_upgrade > 0 else []
@@ -80,24 +80,39 @@ class Simulation:
                 if staff.current_patient is not None:
                     patient = next((p for p in self.patients if p.id == staff.current_patient), None)
                     if patient and patient.treatment_minutes_left <= 0:
-                        staff.available = True
-                        staff.current_patient = None
-                        patient.seen = 0
-                        patient.assigned_staff = None
-                        # If treatment just ended, add 0.5 to severity
-                        if patient.maintain is not None and patient.treatment_minutes_left == 0:
-                            patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + 0.5)
+                        # Treatment session ended
+                        # Optionally discharge immediately upon session end
+                        if DISCHARGE_ON_SESSION_END:
+                            patient.discharge_time = t
+                            patient.discharge_reason = 'session_end'
+                            patient.stop_waiting()
+                            # Free staff and clear assignment
+                            staff.available = True
+                            staff.current_patient = None
+                            patient.seen = 0
+                            patient.assigned_staff = None
+                            # Do not apply end-of-session bump if patient leaves immediately
                             patient.maintain = None
+                        else:
+                            # Free staff and clear assignment; patient stays admitted
+                            staff.available = True
+                            staff.current_patient = None
+                            patient.seen = 0
+                            patient.assigned_staff = None
+                            # Apply configurable end-of-session bump (preserve prior behavior)
+                            if patient.maintain is not None and patient.treatment_minutes_left == 0:
+                                patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + SESSION_END_BUMP)
+                                patient.maintain = None
                         # No explicit cooldown: prioritization handled by severity sorting and staff availability
 
             # Accumulate waiting time for all active patients not currently being seen
-            # Per config: TIME_GROWTH = "0.5 * t + severity_i" means +0.5 per minute when waiting
+            # Per config: linear growth: +GROWTH_PER_MIN per minute when waiting
             for patient in active_patients:
                 if patient.seen == 0:
                     patient.waiting_time += 1
                     patient.start_waiting()
-                    # Apply time growth: severity increases by 0.5 per minute when waiting
-                    patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + 0.5)
+                    # Apply linear growth
+                    patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + GROWTH_PER_MIN)
 
             # Sort by severity descending (prioritize high severity)
             active_patients.sort(key=lambda p: p.severity, reverse=True)
@@ -114,9 +129,10 @@ class Simulation:
                     # Continue treatment
                     if patient.treatment_minutes_left > 0:
                         patient.treatment_minutes_left -= 1
-                        # If maintain=0, subtract 0.5 from severity
+                        patient.total_treatment_time += 1  # Track treatment time
+                        # If maintain=0, apply linear decay
                         if patient.maintain == 0:
-                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - 0.5)
+                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - DECAY_PER_MIN)
                         # If maintain=1, severity stays the same
                         # If treatment ends now, will be freed next loop
                     else:
@@ -147,12 +163,11 @@ class Simulation:
                         # Determine maintain probability and treatment duration by staff type
                         prob = PROVIDER_MAINTAIN_PROB_GE50 if patient.severity >= 50 else PROVIDER_MAINTAIN_PROB_LT50
                         patient.maintain = 1 if random.random() < prob else 0
-                        if staff.type == 'provider':
-                            mean_minutes = 2 * patient.severity
-                        else:
-                            mean_minutes = patient.severity
-                        patient.treatment_minutes_left = int(np.random.normal(loc=mean_minutes, scale=1))
-                        patient.treatment_minutes_left = max(1, patient.treatment_minutes_left)
+                        # Max treatment time per session: random between MIN and (initial_severity * MAX_MULTIPLIER)
+                        from config import MIN_TREATMENT_TIME, MAX_TREATMENT_MULTIPLIER
+                        # Session duration now depends on CURRENT severity at assignment time
+                        max_treatment = int(max(PATIENT_SEVERITY_MIN, patient.severity) * MAX_TREATMENT_MULTIPLIER)
+                        patient.treatment_minutes_left = random.randint(MIN_TREATMENT_TIME, max(MIN_TREATMENT_TIME, max_treatment))
                         assigned = True
                         # Just assigned, stop waiting period
                         patient.stop_waiting()
@@ -188,12 +203,15 @@ class Simulation:
         for patient in self.patients:
             if patient.discharge_time is not None:
                 avg_wait = (sum(patient.waiting_periods) / len(patient.waiting_periods)) if patient.waiting_periods else 0
+                total_treatment_time = getattr(patient, 'total_treatment_time', 0)
                 report.append({
                     'patient_id': patient.id,
                     'initial_severity': getattr(patient, 'initial_severity', patient.severity),
                     'final_severity': patient.severity,
                     'waiting_time_minutes': patient.waiting_time,
                     'waiting_time_days': patient.waiting_time / MINUTES_PER_DAY,
+                    'treatment_time_minutes': total_treatment_time,
+                    'treatment_time_days': total_treatment_time / MINUTES_PER_DAY,
                     'average_waiting_period_minutes': avg_wait,
                     'average_waiting_period_days': avg_wait / MINUTES_PER_DAY if avg_wait else 0,
                     'n_waiting_periods': len(patient.waiting_periods),
