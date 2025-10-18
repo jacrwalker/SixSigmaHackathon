@@ -132,9 +132,10 @@ class PatientTrackingSimulation:
                     patient.stop_waiting()
                     if patient.treatment_minutes_left > 0:
                         patient.treatment_minutes_left -= 1
-                        # If maintain=0, apply linear decay
+                        # If maintain=0, apply linear decay (decay rate based on initial severity)
                         if patient.maintain == 0:
-                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - DECAY_PER_MIN)
+                            decay_rate = 0.25 if patient.initial_severity >= 50 else DECAY_PER_MIN
+                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - decay_rate)
                     else:
                         pass
                 else:

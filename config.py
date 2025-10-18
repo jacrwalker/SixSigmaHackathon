@@ -62,9 +62,9 @@ TIME_DECAY = "-0.5 * t + severity_i"  # Linear decay: -0.5 per minute when being
 GROWTH_PER_MIN = 0.5
 DECAY_PER_MIN = 0.5
 # Bump applied at the end of a treatment session (set to 0 if discharging on session end)
-SESSION_END_BUMP = 0.0
+SESSION_END_BUMP = 0.5
 # If True, discharge a patient from the hospital when a treatment session ends (instead of time-window discharge)
-DISCHARGE_ON_SESSION_END = True
+DISCHARGE_ON_SESSION_END = False
 # Max treatment time per session: random between MIN_TREATMENT_TIME and (initial_severity * 2)
 MIN_TREATMENT_TIME = 10  # Minimum treatment session time in minutes
 MAX_TREATMENT_MULTIPLIER = 2  # Max treatment time = initial_severity * this multiplier
@@ -98,7 +98,9 @@ PATIENT_SEVERITY_UPGRADE_FACTOR = 1.10  # increase current severity by 10%
 OUTPUT_CSV = "scratch_waiting_times_system.csv"
 
 # Random seed for reproducibility
-RANDOM_SEED = 42
+#13
+#52152
+RANDOM_SEED = 52152
 def initialize_random_seeds():
     random.seed(RANDOM_SEED)
     np.random.seed(RANDOM_SEED)

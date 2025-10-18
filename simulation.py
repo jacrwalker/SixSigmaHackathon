@@ -34,14 +34,16 @@ class Simulation:
         # Assign nurse panels in consecutive blocks of 4 patient IDs by integer suffix
         # Example: patients 1-4 -> nurse_1, 5-8 -> nurse_2, etc.
         panels = {n.id: [] for n in self.nurses}
-        for p in self.patients:
-            try:
-                idx = int(p.id.split('_')[-1]) - 1
-            except Exception:
-                idx = 0
-            nurse_idx = (idx // NURSES_MAX_PATIENTS) % len(self.nurses)
+        patient_ids = [p.id for p in self.patients]
+        n_nurses = len(self.nurses)
+        # Assign 4 patients per nurse, and if there are extra patients, assign them to nurses in order
+        for i, pid in enumerate(patient_ids):
+            nurse_idx = i // NURSES_MAX_PATIENTS
+            if nurse_idx >= n_nurses:
+                # Overflow: assign extra patients to nurses in round-robin fashion
+                nurse_idx = i % n_nurses
             nurse = self.nurses[nurse_idx]
-            panels[nurse.id].append(p.id)
+            panels[nurse.id].append(pid)
         for n in self.nurses:
             n.assigned_patients = panels.get(n.id, [])
 
@@ -108,7 +110,7 @@ class Simulation:
             # Accumulate waiting time for all active patients not currently being seen
             # Per config: linear growth: +GROWTH_PER_MIN per minute when waiting
             for patient in active_patients:
-                if patient.seen == 0:
+                if patient.seen == 0 and patient.discharge_time is None:
                     patient.waiting_time += 1
                     patient.start_waiting()
                     # Apply linear growth
@@ -130,9 +132,10 @@ class Simulation:
                     if patient.treatment_minutes_left > 0:
                         patient.treatment_minutes_left -= 1
                         patient.total_treatment_time += 1  # Track treatment time
-                        # If maintain=0, apply linear decay
+                        # If maintain=0, apply linear decay (decay rate based on initial severity)
                         if patient.maintain == 0:
-                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - DECAY_PER_MIN)
+                            decay_rate = 0.25 if patient.initial_severity >= 50 else DECAY_PER_MIN
+                            patient.severity = max(PATIENT_SEVERITY_MIN, patient.severity - decay_rate)
                         # If maintain=1, severity stays the same
                         # If treatment ends now, will be freed next loop
                     else:
@@ -193,6 +196,29 @@ class Simulation:
                                 if staff.id == patient.assigned_staff:
                                     staff.available = True
                                     staff.current_patient = None
+                                    # If nurse, immediately assign to another waiting patient without a nurse
+                                    if staff.type == 'nurse':
+                                        # Find a waiting patient not assigned to any nurse
+                                        for p in self.patients:
+                                            if p.discharge_time is None and p.seen == 0 and p.assigned_staff is None and p.id in staff.assigned_patients:
+                                                staff.available = False
+                                                staff.current_patient = p.id
+                                                p.seen = 1
+                                                p.assigned_staff = staff.id
+                                                # First time being seen? set timestamp and inpatient window for new admissions
+                                                if p.first_seen_time is None:
+                                                    p.first_seen_time = t
+                                                    if p.admit_time > 0:
+                                                        days = random.randint(*INPATIENT_DAYS_GE50) if p.severity >= 50 else random.randint(*INPATIENT_DAYS_LT50)
+                                                        p.time_in_inpatient = days
+                                                # Determine maintain probability and treatment duration by staff type
+                                                prob = PROVIDER_MAINTAIN_PROB_GE50 if p.severity >= 50 else PROVIDER_MAINTAIN_PROB_LT50
+                                                p.maintain = 1 if random.random() < prob else 0
+                                                from config import MIN_TREATMENT_TIME, MAX_TREATMENT_MULTIPLIER
+                                                max_treatment = int(max(PATIENT_SEVERITY_MIN, p.severity) * MAX_TREATMENT_MULTIPLIER)
+                                                p.treatment_minutes_left = random.randint(MIN_TREATMENT_TIME, max(MIN_TREATMENT_TIME, max_treatment))
+                                                p.stop_waiting()
+                                                break
                                     break
                             patient.seen = 0
                             patient.assigned_staff = None
