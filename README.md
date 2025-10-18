@@ -1,3 +1,5 @@
+![Image Here](images/corgi.png)
+
 # SixSigmaHackathon
 SYSEN 5300 
 Team Name: Dose of Innovation
