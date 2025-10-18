@@ -107,9 +107,9 @@ Treatment duration:
 
 Maintain chance:
 
-    10% if severity ≥50
+    10% if severity ≥50 
 
-    1% if severity <50
+    1% if severity <50 # A critical patient is more likely to become critical than a lower-risk patient
 
 Waiting Time Tracking
 
