@@ -135,3 +135,6 @@ scratch_waiting_times_system.csv
 | `average_waiting_period_minutes` | Mean waiting time per event          |
 | `n_waiting_periods`              | Number of separate waiting intervals |
 | `treatment_time_minutes`         | Total treatment duration             |
+
+<img width="985" height="192" alt="Screenshot 2025-10-18 at 3 53 06 PM" src="https://github.com/user-attachments/assets/0dec8735-b9f3-43a7-986e-e578f84622e7" />
+
