@@ -1,0 +1,889 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical System Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header .subtitle {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card .label {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .stat-card.critical .value {
+            color: #e53e3e;
+        }
+
+        .stat-card.normal .value {
+            color: #48bb78;
+        }
+
+        .search-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .patient-table {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: #f7fafc;
+            transform: scale(1.01);
+        }
+
+        td {
+            padding: 18px 20px;
+            font-size: 1rem;
+        }
+
+        .patient-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1.1rem;
+        }
+
+        .patient-id {
+            color: #718096;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.critical {
+            background: #fed7d7;
+            color: #c53030;
+            animation: criticalPulse 1.5s infinite;
+        }
+
+        .status-badge.normal {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        @keyframes criticalPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(229, 62, 62, 0);
+            }
+        }
+
+        .time-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #4a5568;
+        }
+
+        .time-indicator.recent {
+            color: #48bb78;
+        }
+
+        .time-indicator.old {
+            color: #ed8936;
+        }
+
+        .time-indicator.very-old {
+            color: #e53e3e;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px 20px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .patient-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            color: #718096;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            color: #2d3748;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .timeline-section, .comments-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 25px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+
+        .timeline-item.critical::before {
+            background: #e53e3e;
+            animation: criticalPulse 1.5s infinite;
+        }
+
+        .timeline-item.warning::before {
+            background: #ed8936;
+        }
+
+        .timeline-item.normal::before {
+            background: #48bb78;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .timeline-time {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .timeline-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .timeline-badge.critical {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .timeline-badge.warning {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .timeline-badge.normal {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .timeline-content {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .timeline-author {
+            margin-top: 10px;
+            color: #718096;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
+        .comment-box {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .comment-time {
+            color: #718096;
+            font-size: 0.85rem;
+        }
+
+        .comment-text {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .add-comment-form {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .add-comment-form input, .add-comment-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        .add-comment-form button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .error {
+            color: #e53e3e;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <svg style="width: 40px; height: 40px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                Medical System Dashboard
+            </h1>
+            <div class="subtitle">Real-time Patient Monitoring System</div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="label">Total Patients</div>
+                <div class="value" id="totalPatients">-</div>
+            </div>
+            <div class="stat-card critical">
+                <div class="label">Critical</div>
+                <div class="value" id="criticalPatients">-</div>
+            </div>
+            <div class="stat-card normal">
+                <div class="label">Normal</div>
+                <div class="value" id="normalPatients">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Avg Wait Time</div>
+                <div class="value" id="avgWaitTime">-</div>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search patients by name or ID..." onkeyup="searchPatients()">
+        </div>
+
+        <div class="patient-table">
+            <table id="patientTable">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Age</th>
+                        <th>Status</th>
+                        <th>Last Treated</th>
+                        <th>Treated By</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="patientTableBody">
+                    <tr>
+                        <td colspan="6" class="loading">Loading patients...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Patient Details Modal -->
+    <div id="patientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <span id="modalPatientName">Patient Details</span>
+                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                </h2>
+            </div>
+            <div class="modal-body">
+                <div class="patient-details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Patient ID</span>
+                        <span class="detail-value" id="modalPatientId">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Age</span>
+                        <span class="detail-value" id="modalPatientAge">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Current Status</span>
+                        <span class="detail-value" id="modalPatientStatus">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Primary Physician</span>
+                        <span class="detail-value" id="modalPatientDoctor">-</span>
+                    </div>
+                </div>
+
+                <div class="timeline-section">
+                    <h3 class="section-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        Criticality Timeline
+                    </h3>
+                    <div class="timeline" id="patientTimeline">
+                        <!-- Timeline items will be dynamically added here -->
+                    </div>
+                </div>
+
+                <div class="comments-section">
+                    <h3 class="section-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Medical Comments
+                    </h3>
+                    <div id="commentsContainer">
+                        <!-- Comments will be dynamically added here -->
+                    </div>
+                    <div class="add-comment-form">
+                        <input type="text" id="commentAuthor" placeholder="Your name (e.g., Dr. Smith)">
+                        <textarea id="commentText" rows="3" placeholder="Add a medical comment..."></textarea>
+                        <button onclick="addComment()">Add Comment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPatientId = null;
+        let patientsData = [];
+
+        // Load patients and stats on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPatients();
+            loadStats();
+            // Refresh data every 30 seconds
+            setInterval(loadPatients, 30000);
+            setInterval(loadStats, 30000);
+        });
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalPatients').textContent = stats.total;
+                document.getElementById('criticalPatients').textContent = stats.critical;
+                document.getElementById('normalPatients').textContent = stats.normal;
+                document.getElementById('avgWaitTime').textContent = stats.avg_wait + 'h';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadPatients() {
+            try {
+                const response = await fetch('/api/patients');
+                patientsData = await response.json();
+                renderPatientTable(patientsData);
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                document.getElementById('patientTableBody').innerHTML = 
+                    '<tr><td colspan="6" class="error">Error loading patients. Please try again.</td></tr>';
+            }
+        }
+
+        function renderPatientTable(patients) {
+            const tbody = document.getElementById('patientTableBody');
+            
+            if (patients.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">No patients found.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = patients.map(patient => {
+                const timeClass = getTimeClass(patient.last_treated_human);
+                return `
+                    <tr>
+                        <td>
+                            <div class="patient-name">${patient.name}</div>
+                            <div class="patient-id">ID: ${patient.patient_id}</div>
+                        </td>
+                        <td>${patient.age}</td>
+                        <td><span class="status-badge ${patient.status.toLowerCase()}">${patient.status}</span></td>
+                        <td><span class="time-indicator ${timeClass}">${patient.last_treated_human}</span></td>
+                        <td>${patient.treated_by}</td>
+                        <td>
+                            <button class="action-btn" onclick="openPatientDetails(${patient.id})">
+                                View Details
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getTimeClass(timeString) {
+            if (timeString.includes('minute') || timeString === 'Just now') {
+                return 'recent';
+            } else if (timeString.includes('hour')) {
+                const hours = parseInt(timeString);
+                if (hours <= 2) return 'recent';
+                if (hours <= 4) return 'old';
+                return 'very-old';
+            }
+            return 'old';
+        }
+
+        async function openPatientDetails(patientId) {
+            currentPatientId = patientId;
+            
+            try {
+                const response = await fetch(`/api/patient/${patientId}/details`);
+                const data = await response.json();
+                
+                // Update patient details
+                document.getElementById('modalPatientName').textContent = data.patient.name;
+                document.getElementById('modalPatientId').textContent = data.patient.patient_id;
+                document.getElementById('modalPatientAge').textContent = data.patient.age + ' years';
+                document.getElementById('modalPatientStatus').textContent = data.patient.status;
+                document.getElementById('modalPatientDoctor').textContent = data.patient.treated_by;
+                
+                // Update timeline
+                const timeline = document.getElementById('patientTimeline');
+                timeline.innerHTML = data.timeline.map(event => `
+                    <div class="timeline-item ${event.status}">
+                        <div class="timeline-header">
+                            <span class="timeline-time">${event.time}</span>
+                            <span class="timeline-badge ${event.status}">${event.status}</span>
+                        </div>
+                        <div class="timeline-content">${event.content}</div>
+                        <div class="timeline-author">— ${event.author}</div>
+                    </div>
+                `).join('');
+                
+                // Update comments
+                const commentsContainer = document.getElementById('commentsContainer');
+                commentsContainer.innerHTML = data.comments.map(comment => `
+                    <div class="comment-box">
+                        <div class="comment-header">
+                            <span class="comment-author">${comment.author}</span>
+                            <span class="comment-time">${comment.time}</span>
+                        </div>
+                        <div class="comment-text">${comment.text}</div>
+                    </div>
+                `).join('');
+                
+                // Show modal
+                document.getElementById('patientModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            } catch (error) {
+                console.error('Error loading patient details:', error);
+                alert('Error loading patient details. Please try again.');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('patientModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            currentPatientId = null;
+            
+            // Clear form
+            document.getElementById('commentAuthor').value = '';
+            document.getElementById('commentText').value = '';
+        }
+
+        async function addComment() {
+            const author = document.getElementById('commentAuthor').value.trim();
+            const text = document.getElementById('commentText').value.trim();
+            
+            if (!author || !text) {
+                alert('Please fill in both your name and comment.');
+                return;
+            }
+            
+            if (!currentPatientId) {
+                alert('No patient selected.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/patient/${currentPatientId}/comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ author, text })
+                });
+                
+                if (response.ok) {
+                    // Reload patient details to show new comment
+                    openPatientDetails(currentPatientId);
+                    
+                    // Clear form
+                    document.getElementById('commentAuthor').value = '';
+                    document.getElementById('commentText').value = '';
+                } else {
+                    alert('Error adding comment. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error adding comment:', error);
+                alert('Error adding comment. Please try again.');
+            }
+        }
+
+        function searchPatients() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            
+            if (filter === '') {
+                renderPatientTable(patientsData);
+                return;
+            }
+            
+            const filteredPatients = patientsData.filter(patient => 
+                patient.name.toLowerCase().includes(filter) ||
+                patient.patient_id.toLowerCase().includes(filter)
+            );
+            
+            renderPatientTable(filteredPatients);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('patientModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // Keyboard accessibility - close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
