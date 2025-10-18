@@ -72,7 +72,7 @@ Each patient is assigned:
 
 Minute-by-Minute Loop
 
-Runs for 28 * 1440 minutes.
+Runs for 28 * 1440 minutes. # This is 4 continous weeks of simulation
 
 Each iteration:
 
@@ -94,7 +94,8 @@ Patient Flow Rules
 
     Being Seen: Severity decreases by -0.5/minute (or stays constant if “maintained”).
 
-    Discharge: Patients leave after 3–7 days (<50) or 3–28 days (≥50).
+    Discharge: Patients leave after 3–7 days (<50) or 3–28 days (≥50). # Due to CMS "Two Midnight" Rules
+
 
 Treatment Assignments
 
@@ -106,9 +107,9 @@ Treatment duration:
 
 Maintain chance:
 
-    10% if severity ≥50
+    10% if severity ≥50 
 
-    1% if severity <50
+    1% if severity <50 # A critical patient is more likely to become critical than a lower-risk patient
 
 Waiting Time Tracking
 
