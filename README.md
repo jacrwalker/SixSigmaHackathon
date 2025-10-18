@@ -58,7 +58,7 @@ Patients are dynamically admitted, treated, and discharged according to the simu
 
 Initialization
 
-18 patients are admitted.
+18 patients are admitted. # Maximum for this simulation is 20 patients
 
 Each patient is assigned:
 
