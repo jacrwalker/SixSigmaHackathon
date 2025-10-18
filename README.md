@@ -1,5 +1,7 @@
 ![Image Here](images/corgi.png)
 
+**TO DOWNLOAD APPLICATION FOLLOW THIS LINK:** [Google Drive folder](https://drive.google.com/drive/folders/1FmX0_Fgh0qoO64Aas0tZSYZF25RQQQH3?usp=drive_link)
+
 # SixSigmaHackathon
 SYSEN 5300 
 Team Name: Dose of Innovation
@@ -58,72 +60,58 @@ Patients are dynamically admitted, treated, and discharged according to the simu
 
 # 🩺 Simulation Logic
 
-Initialization
+**Initialization**
 
 18 patients are admitted. # Maximum for this simulation is 20 patients
 
 Each patient is assigned:
 
-    Severity rating (1–100)
+- Severity rating (1–100)
+- Inpatient duration (based on severity)
+- Seen/not-seen status (0 at t=0)
 
-    Inpatient duration (based on severity)
+3 providers and 5 nurses are created and assigned to patient panels.
 
-    Seen/not-seen status (0 at t=0)
-
-    3 providers and 5 nurses are created and assigned to patient panels.
-
-Minute-by-Minute Loop
+**Minute-by-Minute Loop**
 
 Runs for 28 * 1440 minutes. # This is 4 continous weeks of simulation
 
 Each iteration:
 
-    Adds new patients (if beds are available).
+- Adds new patients (if beds are available).
+- Upgrades severity for 10% of low-severity patients (every 12 hours).
+- Updates patient waiting and treatment states.
+- Frees staff when treatments end.
+- Sorts patients by severity and assigns available staff.
+- Discharges patients when their inpatient time expires.
 
-    Upgrades severity for 10% of low-severity patients (every 12 hours).
+**Patient Flow Rules**
 
-    Updates patient waiting and treatment states.
+- Waiting: Severity increases by +0.5/minute.
+- Being Seen: Severity decreases by -0.5/minute (or stays constant if “maintained”).
+- Discharge: Patients leave after 3–7 days (<50) or 3–28 days (≥50). # Due to CMS "Two Midnight" Rules
 
-    Frees staff when treatments end.
+**Treatment Assignments**
 
-    Sorts patients by severity and assigns available staff.
-
-    Discharges patients when their inpatient time expires.
-
-Patient Flow Rules
-
-    Waiting: Severity increases by +0.5/minute.
-
-    Being Seen: Severity decreases by -0.5/minute (or stays constant if “maintained”).
-
-    Discharge: Patients leave after 3–7 days (<50) or 3–28 days (≥50). # Due to CMS "Two Midnight" Rules
-
-
-Treatment Assignments
-
-  Provider or nurse is randomly assigned if available.
+Provider or nurse is randomly assigned if available.
 
 Treatment duration:
 
-    Random between 10 and (severity * 2) minutes.
+- Random between 10 and (severity * 2) minutes.
 
 Maintain chance:
 
-    10% if severity ≥50 
+- 10% if severity ≥50 
+- 1% if severity <50 # A critical patient is more likely to become critical than a lower-risk patient
 
-    1% if severity <50 # A critical patient is more likely to become critical than a lower-risk patient
+**Waiting Time Tracking**
 
-Waiting Time Tracking
-
-    The simulation tracks how long each patient waits before being seen.
-
-    Once discharged, their average waiting time and total waiting/treatment times are logged.
+- The simulation tracks how long each patient waits before being seen.
+- Once discharged, their average waiting time and total waiting/treatment times are logged.
 
 # 🧮 Output
 
-After the simulation completes, a CSV file is generated:
-
-scratch_waiting_times_system.csv
+After the simulation completes, a CSV file is generated: `scratch_waiting_times_system.csv`
 
 | Column                           | Description                          |
 | -------------------------------- | ------------------------------------ |
@@ -136,5 +124,4 @@ scratch_waiting_times_system.csv
 | `n_waiting_periods`              | Number of separate waiting intervals |
 | `treatment_time_minutes`         | Total treatment duration             |
 
-<img width="985" height="192" alt="Screenshot 2025-10-18 at 3 53 06 PM" src="https://github.com/user-attachments/assets/0dec8735-b9f3-43a7-986e-e578f84622e7" />
-
+<img width="985" height="192" alt="Screenshot 2025-10-18 at 3 53 06 PM" src="https://github.com/user-attachments/assets/0dec8735-b9f3-43a7-986e-e578f84622e7" />
