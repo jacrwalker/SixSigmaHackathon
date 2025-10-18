@@ -20,11 +20,24 @@ class Simulation:
         self.patients.append(patient)
         self.next_patient_id += 1
         return patient
+    
+    def assign_nurses_to_patients(self):
+        """Randomly assign 4 patients to each nurse at the start"""
+        active_patients = [p for p in self.patients if p.discharge_time is None]
+        random.shuffle(active_patients)
+        
+        for i, nurse in enumerate(self.nurses):
+            start_idx = i * 4
+            end_idx = min(start_idx + 4, len(active_patients))
+            nurse.assigned_patients = [p.id for p in active_patients[start_idx:end_idx]]
 
     def run(self):
         # Initialize patients
         for _ in range(N_INITIAL_PATIENTS):
             self.add_patient(0)
+        
+        # Assign nurses to patients (each nurse gets 4 patients)
+        self.assign_nurses_to_patients()
 
         # Main simulation loop
         for t in range(TOTAL_MINUTES):
@@ -60,16 +73,24 @@ class Simulation:
                             patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + 0.5)
                             patient.maintain = None
                         # Enforce cooldown: patient must wait before being seen again
-                        # Higher severity = shorter cooldown for prioritization
-                        patient.cooldown = max(1, int(10 - (patient.severity / 10)))
+                        # Higher severity = shorter cooldown (1-5 minutes based on severity)
+                        if patient.severity >= 80:
+                            patient.cooldown = 1
+                        elif patient.severity >= 60:
+                            patient.cooldown = 2
+                        elif patient.severity >= 40:
+                            patient.cooldown = 3
+                        else:
+                            patient.cooldown = 5
 
             # Process cooldowns for all active patients
             for patient in active_patients:
                 if hasattr(patient, 'cooldown') and patient.cooldown > 0:
                     patient.cooldown -= 1
-                    if patient.seen == 0:  # Only count waiting if not currently being seen
-                        patient.waiting_time += 1
-                        patient.start_waiting()
+                    # Only track waiting if not currently being seen AND cooldown just finished
+                    if patient.seen == 0 and patient.cooldown == 0:
+                        # Cooldown just ended, patient can now be seen
+                        pass
 
             # Sort by severity descending (prioritize high severity)
             active_patients.sort(key=lambda p: p.severity, reverse=True)
@@ -78,6 +99,10 @@ class Simulation:
             for patient in active_patients:
                 # Skip if still in cooldown
                 if hasattr(patient, 'cooldown') and patient.cooldown > 0:
+                    # Patient is in cooldown waiting period
+                    if patient.seen == 0:
+                        patient.waiting_time += 1
+                        patient.start_waiting()
                     continue
                 # If patient is already assigned to staff
                 if patient.seen == 1:
@@ -95,30 +120,40 @@ class Simulation:
                         # Treatment just ended, will be freed above
                         pass
                 else:
-                    # Not seen
-                    # Try to assign provider first
+                    # Not seen - try to assign staff
                     assigned = False
-                    for staff in self.providers + self.nurses:
+                    
+                    # Try providers first (they can see any patient)
+                    for staff in self.providers:
                         if staff.available:
                             staff.available = False
                             staff.current_patient = patient.id
                             patient.seen = 1
                             patient.assigned_staff = staff.id
-                            # Determine maintain probability
-                            if staff.type == 'provider':
-                                prob = PROVIDER_MAINTAIN_PROB_GE50 if patient.severity >= 50 else PROVIDER_MAINTAIN_PROB_LT50
-                                patient.maintain = 1 if random.random() < prob else 0
-                                patient.treatment_minutes_left = int(np.random.normal(loc=patient.severity if staff.type == 'nurse' else 2*patient.severity, scale=1))
-                                patient.treatment_minutes_left = max(1, patient.treatment_minutes_left)
-                            else:
+                            prob = PROVIDER_MAINTAIN_PROB_GE50 if patient.severity >= 50 else PROVIDER_MAINTAIN_PROB_LT50
+                            patient.maintain = 1 if random.random() < prob else 0
+                            patient.treatment_minutes_left = int(np.random.normal(loc=2*patient.severity, scale=1))
+                            patient.treatment_minutes_left = max(1, patient.treatment_minutes_left)
+                            assigned = True
+                            patient.stop_waiting()
+                            break
+                    
+                    # If no provider available, check if assigned nurse is available
+                    if not assigned:
+                        for nurse in self.nurses:
+                            if patient.id in nurse.assigned_patients and nurse.available:
+                                nurse.available = False
+                                nurse.current_patient = patient.id
+                                patient.seen = 1
+                                patient.assigned_staff = nurse.id
                                 prob = PROVIDER_MAINTAIN_PROB_GE50 if patient.severity >= 50 else PROVIDER_MAINTAIN_PROB_LT50
                                 patient.maintain = 1 if random.random() < prob else 0
                                 patient.treatment_minutes_left = int(np.random.normal(loc=patient.severity, scale=1))
                                 patient.treatment_minutes_left = max(1, patient.treatment_minutes_left)
-                            assigned = True
-                            # Just assigned, stop waiting period
-                            patient.stop_waiting()
-                            break
+                                assigned = True
+                                patient.stop_waiting()
+                                break
+                    
                     if not assigned:
                         # No staff available, add 0.5 to severity
                         patient.severity = min(PATIENT_SEVERITY_MAX, patient.severity + 0.5)

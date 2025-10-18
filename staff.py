@@ -14,6 +14,8 @@ class Nurse:
         self.available = True
         self.current_patient = None
         self.type = 'nurse'
+        self.assigned_patients = []  # List of 4 patients assigned to this nurse
+        self.max_patients = 4
 
 def initialize_staff():
     providers = [Provider(i+1) for i in range(N_PROVIDERS)]
